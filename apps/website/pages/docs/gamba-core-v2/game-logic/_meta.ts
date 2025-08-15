@@ -1,22 +1,22 @@
 export default {
   'get-game-hash': {
     title: 'getGameHash',
-    href: '/docs/gamba-core-v2#getgamehash'
+    href: '/docs/gamba-core-v2#getgamehash',
   },
   'get-result-number': {
     title: 'getResultNumber',
-    href: '/docs/gamba-core-v2#getresultnumber'
+    href: '/docs/gamba-core-v2#getresultnumber',
   },
   'parse-result': {
     title: 'parseResult',
-    href: '/docs/gamba-core-v2#parseresult'
+    href: '/docs/gamba-core-v2#parseresult',
   },
   'get-next-result': {
     title: 'getNextResult',
-    href: '/docs/gamba-core-v2#getnextresult'
+    href: '/docs/gamba-core-v2#getnextresult',
   },
-  'hmac256': {
+  hmac256: {
     title: 'hmac256',
-    href: '/docs/gamba-core-v2#hmac256'
-  }
-}
+    href: '/docs/gamba-core-v2#hmac256',
+  },
+};

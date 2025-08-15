@@ -1,10 +1,10 @@
 export default {
   tokenmeta: {
     title: 'TokenMeta',
-    href: '/docs/gamba-react-ui-v2#tokenmeta'
+    href: '/docs/gamba-react-ui-v2#tokenmeta',
   },
   makeheliustokenfetcher: {
     title: 'makeHeliusTokenFetcher',
-    href: '/docs/gamba-react-ui-v2#makeheliustokenfetcher'
-  }
-}
+    href: '/docs/gamba-react-ui-v2#makeheliustokenfetcher',
+  },
+};

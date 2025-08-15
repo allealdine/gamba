@@ -11,7 +11,7 @@
 //       glareMaxOpacity={.1}
 //       className="transform hover:scale-105 transition-transform duration-500 ease-in-out"
 //     >
-//       <a href={link} target="_blank" rel="noopener noreferrer" className="card-border relative flex h-full flex-col gap-6 rounded-2xl p-8 bg-gradient-to-br from-indigo-500 to-purple-500 shadow-2xl overflow-hidden">
+//       <a href={link} target="_blank" rel="noopener noreferrer" className="card-border relative flex h-full flex-col gap-6 rounded-2xl p-8 bg-linear-to-br from-indigo-500 to-purple-500 shadow-2xl overflow-hidden">
 //         <div style={{ backgroundImage: `url(${image})` }} className="bg-cover bg-center absolute top-0 left-0 w-full h-full opacity-50 z-0"></div>
 //         <div className="z-10">
 //           <h2 className={'card-text text-xl font-semibold text-white font-mono'}>

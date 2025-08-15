@@ -16,7 +16,7 @@ export function GameCard({ title, image, link }) {
         href={link}
         target="_blank"
         rel="noopener noreferrer"
-        className="relative flex h-full flex-col gap-6 rounded-2xl p-8 bg-gradient-to-br from-indigo-500 to-purple-500 shadow-2xl overflow-hidden"
+        className="relative flex h-full flex-col gap-6 rounded-2xl p-8 bg-linear-to-br from-indigo-500 to-purple-500 shadow-2xl overflow-hidden"
       >
         <div
           style={{ backgroundImage: `url(${image})` }}

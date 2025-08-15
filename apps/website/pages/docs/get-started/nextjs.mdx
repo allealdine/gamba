@@ -149,7 +149,7 @@ export default function HomePage() {
     <div className="flex flex-col justify-center items-center mx-auto max-w-6xl max-sm:max-w-sm pt-20">
       {loading ? (
         <div className="w-full relative grid gap-1">
-          <div className="relative flex-grow bg-gray-800 rounded-lg overflow-hidden transition-height duration-200 md:min-h-[600px] min-h-[600px] flex items-center justify-center">
+          <div className="relative grow bg-gray-800 rounded-lg overflow-hidden transition-height duration-200 md:min-h-[600px] min-h-[600px] flex items-center justify-center">
             <div style={{ textAlign: "center" }}>Loading game...</div>
           </div>
         </div>
@@ -253,7 +253,7 @@ export default function CustomRenderer() {
   return (
     <>
       <div className="w-full relative grid gap-1">
-        <div className="relative flex-grow bg-gray-800 rounded-lg overflow-hidden transition-height duration-200 md:min-h-[600px] min-h-[600px]">
+        <div className="relative grow bg-gray-800 rounded-lg overflow-hidden transition-height duration-200 md:min-h-[600px] min-h-[600px]">
           <GambaUi.PortalTarget target="error" />
           <GambaUi.PortalTarget target="screen" />
         </div>
@@ -529,7 +529,7 @@ export default function ExampleGame() {
                 <div className="flex flex-col justify-center items-center mx-auto max-w-6xl max-sm:max-w-sm pt-20">
                   {loading ? (
                     <div className="w-full relative grid gap-1">
-                      <div className="relative flex-grow bg-gray-800 rounded-lg overflow-hidden transition-height duration-200 md:min-h-[600px] min-h-[600px] flex items-center justify-center">
+                      <div className="relative grow bg-gray-800 rounded-lg overflow-hidden transition-height duration-200 md:min-h-[600px] min-h-[600px] flex items-center justify-center">
                         <div style={{ textAlign: "center" }}>Loading game...</div>
                       </div>
                     </div>
@@ -634,7 +634,7 @@ export default function ExampleGame() {
               return (
                 <>
                   <div className="w-full relative grid gap-1">
-                    <div className="relative flex-grow bg-gray-800 rounded-lg overflow-hidden transition-height duration-200 md:min-h-[600px] min-h-[600px]">
+                    <div className="relative grow bg-gray-800 rounded-lg overflow-hidden transition-height duration-200 md:min-h-[600px] min-h-[600px]">
                       <GambaUi.PortalTarget target="error" />
                       <GambaUi.PortalTarget target="screen" />
                     </div>

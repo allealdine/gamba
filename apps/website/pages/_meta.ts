@@ -5,19 +5,19 @@ export default {
     title: 'Built on Gamba',
     display: 'hidden',
     theme: {
-      layout: 'raw'
-    }
+      layout: 'raw',
+    },
   },
   index: {
     type: 'page',
     title: 'Gamba',
     display: 'hidden',
     theme: {
-      layout: 'raw'
-    }
+      layout: 'raw',
+    },
   },
   docs: {
     type: 'page',
-    title: 'Documentation'
-  }
-}
+    title: 'Documentation',
+  },
+};

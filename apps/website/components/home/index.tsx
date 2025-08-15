@@ -1,85 +1,86 @@
-import Link from 'next/link'
-import { useEffect, useRef, useState } from 'react'
-import { CodeBlock, dracula } from 'react-code-blocks'
-import Tilt from 'react-parallax-tilt'
-import { projects as allProjects } from '../projects'
-import { GameCard } from './gameCard'
+import Link from 'next/link';
+import { useEffect, useRef, useState } from 'react';
+import { CodeBlock, dracula } from 'react-code-blocks';
+import Tilt from 'react-parallax-tilt';
+import { projects as allProjects } from '../projects';
+import { GameCard } from './gameCard';
 
 export function Home() {
-  const [randomProjects, setRandomProjects] = useState<any[]>([])
-  const [fadeStates, setFadeStates] = useState<string[]>([]) // e.g. ['fade-in', 'fade-in', ...]
+  const [randomProjects, setRandomProjects] = useState<any[]>([]);
+  const [fadeStates, setFadeStates] = useState<string[]>([]); // e.g. ['fade-in', 'fade-in', ...]
 
   // For controlling the interval
-  const intervalRef = useRef<NodeJS.Timer | null>(null)
+  const intervalRef = useRef<NodeJS.Timer | null>(null);
 
   // Randomly pick 6 to show on first render
   useEffect(() => {
     const shuffledProjects = [...allProjects]
       .sort(() => 0.5 - Math.random())
-      .slice(0, 6)
-    setRandomProjects(shuffledProjects)
+      .slice(0, 6);
+    setRandomProjects(shuffledProjects);
     // Initialize all fade states to "fade-in"
-    setFadeStates(new Array(6).fill('fade-in'))
-  }, [])
+    setFadeStates(new Array(6).fill('fade-in'));
+  }, []);
 
   // Start the video
   useEffect(() => {
     setTimeout(async () => {
-      const video = document.querySelector('#hero-video') as HTMLVideoElement
+      const video = document.querySelector('#hero-video') as HTMLVideoElement;
       if (video) {
-        await video.play().catch((err) => console.log(err))
-        video.setAttribute('autoplay', 'true')
+        await video.play().catch(err => console.log(err));
+        video.setAttribute('autoplay', 'true');
       }
-    }, 100)
-  }, [])
+    }, 100);
+  }, []);
 
   // Set up the interval to fade out and replace a random project
   useEffect(() => {
     if (randomProjects.length === 6) {
       intervalRef.current = setInterval(() => {
         // pick a random index from 0..5
-        const indexToReplace = Math.floor(Math.random() * 6)
+        const indexToReplace = Math.floor(Math.random() * 6);
         // fade that index out
-        setFadeStates((prev) => {
-          const newStates = [...prev]
-          newStates[indexToReplace] = 'fade-out'
-          return newStates
-        })
-      }, 4000) // every 4 seconds (example)
+        setFadeStates(prev => {
+          const newStates = [...prev];
+          newStates[indexToReplace] = 'fade-out';
+          return newStates;
+        });
+      }, 4000); // every 4 seconds (example)
     }
 
     return () => {
       if (intervalRef.current) {
-        clearInterval(intervalRef.current)
+        clearInterval(intervalRef.current);
       }
-    }
-  }, [randomProjects])
+    };
+  }, [randomProjects]);
 
   // This function picks a random project from the full list that is *not* already displayed
   const getNewProject = (currentProjects: any[]) => {
-    const currentNames = currentProjects.map((p) => p.name)
-    const filtered = allProjects.filter((p) => !currentNames.includes(p.name))
+    const currentNames = currentProjects.map(p => p.name);
+    const filtered = allProjects.filter(p => !currentNames.includes(p.name));
     // if everything is used up or you want duplicates allowed, you can remove this filter
-    if (filtered.length === 0) return allProjects[Math.floor(Math.random() * allProjects.length)]
-    return filtered[Math.floor(Math.random() * filtered.length)]
-  }
+    if (filtered.length === 0)
+      return allProjects[Math.floor(Math.random() * allProjects.length)];
+    return filtered[Math.floor(Math.random() * filtered.length)];
+  };
 
   // handle transition end
   const handleTransitionEnd = (index: number) => {
     if (fadeStates[index] === 'fade-out') {
       // we've just finished fading out, so let's swap the project and then fade in
-      setRandomProjects((prev) => {
-        const newProjects = [...prev]
-        newProjects[index] = getNewProject(prev) // pick a new random project
-        return newProjects
-      })
-      setFadeStates((prev) => {
-        const newStates = [...prev]
-        newStates[index] = 'fade-in'
-        return newStates
-      })
+      setRandomProjects(prev => {
+        const newProjects = [...prev];
+        newProjects[index] = getNewProject(prev); // pick a new random project
+        return newProjects;
+      });
+      setFadeStates(prev => {
+        const newStates = [...prev];
+        newStates[index] = 'fade-in';
+        return newStates;
+      });
     }
-  }
+  };
 
   const code = `
 import React from 'react';
@@ -124,7 +125,7 @@ function App() {
     </GambaProvider>
   );
 }
-`
+`;
 
   return (
     <div>
@@ -183,7 +184,11 @@ function App() {
         </div>
 
         <p className="mt-8 text-xl text-zinc-700 dark:text-zinc-300 leading-8">
-          <Link href="/docs/examples" className="px-4 py-2 text-center" rel="noreferrer">
+          <Link
+            href="/docs/examples"
+            className="px-4 py-2 text-center"
+            rel="noreferrer"
+          >
             Explore more →
           </Link>
         </p>
@@ -208,7 +213,7 @@ function App() {
               Plug and Earn
             </h2>
             <p className="mt-3 text-zinc-600 dark:text-zinc-400">
-              Gamba{'\'s'} open-source SDK is really easy to work with. Simply
+              Gamba{"'s"} open-source SDK is really easy to work with. Simply
               provide your Solana address and start earning on every bet made on
               your site.
             </p>
@@ -309,5 +314,5 @@ function App() {
         </div>
       </div>
     </div>
-  )
+  );
 }

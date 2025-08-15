@@ -20,10 +20,11 @@
     "@chakra-ui/react": "^2.7.0",
     "@codesandbox/sandpack-react": "^2.6.7",
     "@radix-ui/react-popover": "1.0.6",
+    "@tailwindcss/postcss": "^4.1.12",
     "@theguild/remark-mermaid": "^0.3.0",
     "bright": "^0.8.2",
     "clsx": "^2.1.1",
-    "next": "^13.0.6",
+    "next": "^13.5.11",
     "nextra": "^3.3.1",
     "nextra-theme-docs": "^3.3.1",
     "react": "^18.3.1",
@@ -32,10 +33,14 @@
     "react-markdown": "^8.0.7",
     "react-parallax-tilt": "^1.7.146",
     "react-syntax-highlighter": "^15.5.0",
-    "tailwindcss": "^3.3.2"
+    "tailwindcss": "^4.1.12"
   },
   "devDependencies": {
     "@types/node": "18.11.10",
-    "@types/react": "^18.2.13"
+    "@types/react": "^18.2.13",
+    "@typescript-eslint/eslint-plugin": "^8.39.1",
+    "@typescript-eslint/parser": "^8.39.1",
+    "eslint": "^9.33.0",
+    "eslint-plugin-react": "^7.37.5"
   }
 }

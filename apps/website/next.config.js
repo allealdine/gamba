@@ -5,5 +5,4 @@ const withNextra = (nextraPkg.default || nextraPkg)({
   defaultShowCopyCode: true,
 });
 
-
 module.exports = withNextra();

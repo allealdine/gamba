@@ -2,14 +2,14 @@
 export default {
   vite: {
     title: '⚡ Vite',
-    href: '/docs/get-started/vite'
+    href: '/docs/get-started/vite',
   },
   nextjs: {
     title: '⚛️ NEXT.ᴊs',
-    href: '/docs/get-started/nextjs'
+    href: '/docs/get-started/nextjs',
   },
   manual: {
     title: '📖 Manual',
-    href: '/docs/get-started/manual'
-  }
-}
+    href: '/docs/get-started/manual',
+  },
+};

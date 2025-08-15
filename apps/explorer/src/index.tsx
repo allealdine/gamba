@@ -1,34 +1,39 @@
-import "@radix-ui/themes/styles.css"
-import "@solana/wallet-adapter-react-ui/styles.css"
-import "./styles.css"
+import '@radix-ui/themes/styles.css';
+import '@solana/wallet-adapter-react-ui/styles.css';
+import './styles.css';
 
-import * as Toast from "@radix-ui/react-toast"
-import { Theme } from "@radix-ui/themes"
-import { ConnectionProvider, WalletProvider } from "@solana/wallet-adapter-react"
-import { WalletModalProvider } from "@solana/wallet-adapter-react-ui"
-import { PhantomWalletAdapter, SolflareWalletAdapter } from "@solana/wallet-adapter-wallets"
-import { GambaProvider } from "gamba-react-v2"
-import React from "react"
-import ReactDOM from "react-dom/client"
-import { BrowserRouter } from "react-router-dom"
-import { App } from "./App"
+import * as Toast from '@radix-ui/react-toast';
+import { Theme } from '@radix-ui/themes';
+import {
+  ConnectionProvider,
+  WalletProvider,
+} from '@solana/wallet-adapter-react';
+import { WalletModalProvider } from '@solana/wallet-adapter-react-ui';
+import {
+  PhantomWalletAdapter,
+  SolflareWalletAdapter,
+} from '@solana/wallet-adapter-wallets';
+import { GambaProvider } from 'gamba-react-v2';
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import { BrowserRouter } from 'react-router-dom';
+import { App } from './App';
 
-const root = ReactDOM.createRoot(document.getElementById("root")!)
+const root = ReactDOM.createRoot(document.getElementById('root')!);
 
 function Root() {
   const wallets = React.useMemo(
-    () => [
-      new PhantomWalletAdapter(),
-      new SolflareWalletAdapter(),
-    ],
-    [],
-  )
-  
-  
+    () => [new PhantomWalletAdapter(), new SolflareWalletAdapter()],
+    []
+  );
+
   return (
     <Theme accentColor="iris" radius="large" panelBackground="translucent">
-      <BrowserRouter>
-        <ConnectionProvider endpoint={import.meta.env.VITE_RPC_ENDPOINT} config={{ commitment: "processed" }}>
+      <BrowserRouter future={{ v7_startTransition: true }}>
+        <ConnectionProvider
+          endpoint={import.meta.env.VITE_RPC_ENDPOINT}
+          config={{ commitment: 'processed' }}
+        >
           <WalletProvider autoConnect wallets={wallets}>
             <WalletModalProvider>
               <GambaProvider>
@@ -41,7 +46,7 @@ function Root() {
         </ConnectionProvider>
       </BrowserRouter>
     </Theme>
-  )
+  );
 }
 
-root.render(<Root />)
+root.render(<Root />);

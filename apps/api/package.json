@@ -9,6 +9,7 @@
     "kill": "pm2 kill",
     "restart": "pm2 restart api",
     "reload": "pm2 reload api",
+    "start": "node dist/index.js",
     "clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist"
   },
   "dependencies": {

@@ -163,6 +163,7 @@ function Inner() {
   const publicKey = useWalletAddress();
   const gamba = useGambaProvider();
   const gambaState = useAccount(getGambaStateAddress(), decodeGambaState);
+
   const [selectedToken, setSelectedToken] =
     React.useState<ParsedTokenAccount>();
   const tokens = useTokenList();
@@ -177,6 +178,25 @@ function Inner() {
   );
 
   const [search, setSearch] = React.useState('');
+
+  // Add this near the top of the Inner function
+  const gambaStateAddress = getGambaStateAddress();
+
+  // Add this after the gambaState hook
+  const gambaStateAccount = useAccount(gambaStateAddress, info => info);
+  // console.log('@ -xxx- Manual Decode Debug:', {
+  //   gambaStateAccount: gambaStateAccount,
+  //   // decodedGambaState: gambaStateAccount
+  //   //   ? decodeGambaState(gambaStateAccount)
+  //   //   : null,
+  //   // gambaStateFromHook: gambaState,
+  // });
+
+  // console.log('@ -xx- Gamba State Debug:', {
+  //   gambaStateAddress: gambaStateAddress.toString(),
+  //   gambaState: gambaState,
+  //   gambaStateAccount: useAccount(gambaStateAddress, info => info), // This will show if the account exists
+  // });
 
   // Sort by 1. Sol, 2. Known tokens 3. Balance 4. Pubkey
   const sortedTokens = React.useMemo(() => {
@@ -209,11 +229,59 @@ function Inner() {
     [getTokenMeta, sortedTokens, search]
   );
 
+  // const createPool = async () => {
+  //   try {
+  //     if (!selectedToken) return;
+
+  //     console.log('@ ----yayaya=');
+
+  //     const pool = getPoolAddress(selectedToken.mint, authority);
+
+  //     const slot = await connection.getSlot();
+
+  //     console.log('@ --------- createPool: pool=', pool, 'slot=', slot);
+  //     console.log('@ ----kkk=', selectedToken.mint, authority, slot);
+
+  //     const tx = await sendTx(
+  //       gamba.createPool(selectedToken.mint, authority, slot),
+  //       {
+  //         confirmation: 'confirmed',
+  //         priorityFee: 201_000,
+  //         computeUnits: 400_000,
+  //       }
+  //     );
+
+  //     console.log('Create pool txId', tx);
+
+  //     navigate('/pool/' + pool.toBase58() + '');
+  //   } catch (err) {
+  //     console.error(err);
+  //   }
+  // };
+
   const createPool = async () => {
     try {
       if (!selectedToken) return;
 
       const pool = getPoolAddress(selectedToken.mint, authority);
+
+      // Add this debugging
+      console.log('@ -- Pool creation debug 4:', {
+        selectedTokenMint: selectedToken.mint.toString(),
+        authority: authority.toString(),
+        poolAddress: pool.toString(),
+        isPrivate,
+      });
+
+      // Check if pool account already exists
+      const poolAccount = await connection.getAccountInfo(pool);
+      console.log('@ -- Pool account exists 4:', !!poolAccount);
+      if (poolAccount) {
+        console.log(
+          '@ -- Pool account data length 4:',
+          poolAccount.data.length
+        );
+      }
 
       const slot = await connection.getSlot();
 
@@ -226,13 +294,31 @@ function Inner() {
         }
       );
 
-      console.log('Create pool txId', tx);
+      console.log('Create pool txId 4', tx);
 
       navigate('/pool/' + pool.toBase58() + '');
     } catch (err) {
-      console.error(err);
+      console.error('Create pool error:', err);
+      // Add more detailed error logging
+      if (err instanceof Error) {
+        console.error('Error message 4:', err.message);
+        console.error('Error stack 4:', err.stack);
+      }
     }
   };
+
+  // console.log('@ --------- Create Pool Button Debug:', {
+  //   selectedToken: !!selectedToken,
+  //   isLoading,
+  //   gambaStatePoolCreationAllowed: gambaState?.poolCreationAllowed,
+  //   gambaState: gambaState, // Add this to see the full gamba state
+  //   selectedPool: !!selectedPool,
+  //   buttonDisabled:
+  //     !selectedToken ||
+  //     isLoading ||
+  //     !gambaState?.poolCreationAllowed ||
+  //     !!selectedPool,
+  // });
 
   return (
     <>
@@ -290,13 +376,14 @@ function Inner() {
                 disabled={
                   !selectedToken ||
                   isLoading ||
-                  !gambaState?.poolCreationAllowed ||
+                  // !gambaState?.poolCreationAllowed ||
                   !!selectedPool
                 }
               >
                 Create Pool <PlusIcon />
               </Button>
             </Dialog.Trigger>
+            <Dialog.Title>Create Pool</Dialog.Title>
             <Dialog.Content>
               <Flex direction="column" gap="2">
                 <Heading>Read before creating!</Heading>

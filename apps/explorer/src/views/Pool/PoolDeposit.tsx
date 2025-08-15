@@ -63,6 +63,8 @@ export function PoolDeposit({ pool }: { pool: UiPool }) {
   const sendTransaction = useSendTransaction();
   const toast = useToast();
   const wSolAccount = useAccount(getUserWsolAccount(user), decodeAta);
+
+  console.log('@ -------- getGambaStateAddress():', getGambaStateAddress());
   const gambaState = useAccount(getGambaStateAddress(), decodeGambaState);
   const amount = stringtoBigIntUnits(amountText, token.decimals);
   const receiveLpAmount = BigInt(
@@ -74,12 +76,62 @@ export function PoolDeposit({ pool }: { pool: UiPool }) {
       const { publicKey, state } = pool;
 
       setLoading(true);
+      console.log('@ -- instructions 1:');
+
+      // Add this before the deposit function
+      console.log('@ -- pool data:', {
+        publicKey: pool.publicKey.toString(),
+        state: pool.state,
+        underlyingTokenMint: pool.state.underlyingTokenMint.toString(),
+        amount: amount.toString(),
+        user: user.toString(),
+      });
+
+      /*
+      {
+        "publicKey": "EHZWpW2qq4C6hDbKzuAydZudHXowtMdQJ8kdfBztxUhS",
+        "state": {
+            "bump": [
+                253
+            ],
+            "lookupAddress": "2CqHtMtyjFhToyR2mSQ4gS9nGbjYHHGDiHekH5iLUupF",
+            "poolAuthority": "11111111111111111111111111111111",
+            "underlyingTokenMint": "So11111111111111111111111111111111111111112",
+            "antiSpamFeeExempt": false,
+            "minWager": "00",
+            "plays": "00",
+            "liquidityCheckpoint": "00",
+            "depositLimit": false,
+            "depositLimitAmount": "00",
+            "customPoolFee": false,
+            "customPoolFeeBps": "00",
+            "customGambaFee": false,
+            "customGambaFeeBps": "00",
+            "customMaxPayout": false,
+            "customMaxPayoutBps": "00",
+            "customBonusTokenMint": "11111111111111111111111111111111",
+            "customBonusToken": false,
+            "customMaxCreatorFee": false,
+            "customMaxCreatorFeeBps": "00",
+            "depositWhitelistRequired": false,
+            "depositWhitelistAddress": "11111111111111111111111111111111"
+        },
+        "underlyingTokenMint": "So11111111111111111111111111111111111111112",
+        "amount": "2000000000",
+        "user": "9hobJbXVgwJSFLxf7Yv6xW3ZsH1WV8b5gGrUuZdoJboE"
+      }
+      */
+
+      // Also check if the pool account exists
+      const poolAccount = useAccount(pool.publicKey, info => info);
+      console.log('@ -- pool account exists:', !!poolAccount);
 
       const depositInstruction = gamba.depositToPool(
         publicKey,
         state.underlyingTokenMint,
         amount
       );
+      console.log('@ -- instructions 2:', depositInstruction);
 
       const instructions = await (async () => {
         if (isNativeMint(state.underlyingTokenMint)) {
@@ -89,7 +141,7 @@ export function PoolDeposit({ pool }: { pool: UiPool }) {
         return [depositInstruction];
       })();
 
-      console.log('@ -- instructions:', instructions);
+      console.log('@ -- instructions 3:', instructions);
 
       await sendTransaction(instructions, { confirmation: 'confirmed' });
 

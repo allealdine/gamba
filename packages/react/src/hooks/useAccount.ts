@@ -16,7 +16,7 @@ export function useAccount<T>(
   const { connection } = useConnection();
   const fetchedData = data.value[address.toString()];
 
-  console.log('@ -- fetchedData:', fetchedData);
+  // console.log('@ -- fetchedData:', fetchedData);
 
   React.useEffect(() => {
     // Clear old timeout whenever a new address should get fetched

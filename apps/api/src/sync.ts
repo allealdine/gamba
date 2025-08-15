@@ -1,7 +1,7 @@
+// sync.ts
 import {
   GambaTransaction,
   PROGRAM_ID,
-  parseGambaTransaction,
   parseTransactionEvents,
 } from 'gamba-core-v2';
 import { all, db, get, setupDb } from './db';
@@ -15,8 +15,7 @@ interface SignatureObject {
 }
 
 /**
- * Recursively fetch signatures until "earliest" is reached,
- * or until there are no more signatures to fetch
+ * Recursively fetch signatures until "earliest" is reached
  */
 const getSignatures = async (
   before?: SignatureObject,
@@ -29,6 +28,7 @@ const getSignatures = async (
     until?.block_time,
     batch.length
   );
+
   const signatures = await connection.getSignaturesForAddress(
     PROGRAM_ID,
     {
@@ -44,251 +44,310 @@ const getSignatures = async (
   }
 
   const sigs = signatures.map(x => ({
-    block_time: x.blockTime,
     signature: x.signature,
+    block_time: x.blockTime!,
   }));
 
-  // console.log('Signaturses:', sigs.map((x) => x.signature + '-' + x.block_time))
-  until && console.log('Until:', until.signature + '-' + until.block_time);
   const nextBatch = [...batch, ...sigs].sort(
     (a, b) => a.block_time - b.block_time
   );
-
   const nextBefore = nextBatch[0];
 
   if (nextBefore === before) {
     return nextBatch;
   }
 
-  await new Promise(resolve => setTimeout(resolve, 100));
-
-  return await getSignatures(nextBefore, until, nextBatch);
+  await new Promise(resolve => setTimeout(resolve, 500)); // Increased delay to avoid rate limits
+  return getSignatures(nextBefore, until, nextBatch);
 };
 
 /**
- * Returns unpopulated signatures
+ * Returns unprocessed signatures (not yet in settled_games or pool_changes)
  */
 const getRemainingSignatures = async () => {
   const latestGame = await get(
-    'select signature, block_time from settled_games order by block_time desc'
+    'SELECT block_time FROM settled_games ORDER BY block_time DESC LIMIT 1'
   );
   const latestPoolChange = await get(
-    'select signature, block_time from pool_changes order by block_time desc'
+    'SELECT block_time FROM pool_changes ORDER BY block_time DESC LIMIT 1'
   );
-  const latest =
-    (latestGame?.block_time > latestPoolChange?.block_time
-      ? latestGame?.block_time
-      : latestPoolChange?.block_time) ?? 0;
+
+  const latest = Math.max(
+    latestGame?.block_time || 0,
+    latestPoolChange?.block_time || 0
+  );
 
   console.log('Latest blocktime', latest);
 
-  const remaining = await all(
-    'select * from signatures WHERE block_time >= :latest',
-    { ':latest': latest }
-  );
+  const result = await all('SELECT * FROM signatures WHERE block_time >= $1', [
+    latest,
+  ]);
 
-  return remaining as SignatureObject[];
+  return result as SignatureObject[];
 };
 
+/**
+ * Efficiently insert batch of events
+ */
 const storeEvents = async (
   events: (GambaTransaction<'GameSettled'> | GambaTransaction<'PoolChange'>)[]
 ) => {
-  const prices = await getPrices(events.map(x => x.data.tokenMint.toString()));
+  if (events.length === 0) return;
 
-  const insertGames = db.prepare(`
-    INSERT OR IGNORE INTO settled_games (
-      signature,
-      block_time,
-      metadata,
-      nonce,
-      client_seed,
-      rng_seed,
-      next_rng_seed_hashed,
-      bet,
-      bet_length,
-      result_number,
-      creator,
-      user,
-      token,
-      pool,
-      wager,
-      payout,
-      multiplier_bps,
-      creator_fee,
-      pool_fee,
-      gamba_fee,
-      jackpot_fee,
-      jackpot,
-      pool_liquidity,
-      usd_per_unit
-    )
-    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`);
+  const tokenMints = [...new Set(events.map(e => e.data.tokenMint.toString()))];
+  const prices = await getPrices(tokenMints);
 
-  const insertPoolChanges = db.prepare(`
-    INSERT OR IGNORE INTO pool_changes (signature, block_time, action, token, pool, user, amount, lp_supply, post_liquidity, usd_per_unit)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
+  const client = db; // pg Client
 
-  for (const event of events) {
-    if (event.name === 'PoolChange') {
-      insertPoolChanges.run(
-        event.signature,
-        Math.floor(event.time / 1000),
-        event.data.action.Deposit ? 'deposit' : 'withdraw',
-        event.data.tokenMint.toString(),
-        event.data.pool.toString(),
-        event.data.user.toString(),
-        event.data.amount.toString(),
-        event.data.lpSupply.toString(),
-        event.data.postLiquidity.toString(),
-        prices[event.data.tokenMint.toString()].usdPerUnit
-      );
-    }
-    if (event.name === 'GameSettled') {
-      insertGames.run(
-        event.signature,
-        Math.floor(event.time / 1000),
-        event.data.metadata,
-        event.data.nonce.toString(),
-        event.data.clientSeed,
-        event.data.rngSeed,
-        event.data.nextRngSeedHashed,
-        JSON.stringify(event.data.bet),
-        event.data.bet.length,
-        await getResultNumber(
-          event.data.rngSeed,
-          event.data.clientSeed,
-          event.data.nonce
-        ),
-        event.data.creator.toString(),
-        event.data.user.toString(),
-        event.data.tokenMint.toString(),
-        event.data.pool.toString(),
-        event.data.wager.toString(),
-        event.data.payout.toString(),
-        event.data.multiplierBps.toString(),
-        event.data.creatorFee.toString(),
-        event.data.poolFee.toString(),
-        event.data.gambaFee.toString(),
-        event.data.jackpotFee.toString(),
-        event.data.jackpotPayoutToUser.toString(),
-        event.data.poolLiquidity.toString(),
-        prices[event.data.tokenMint.toString()].usdPerUnit
-      );
-    }
+  // Batch insert for pool_changes
+  const poolChangeValues = events
+    .filter((e): e is GambaTransaction<'PoolChange'> => e.name === 'PoolChange')
+    .map(e => {
+      const tokenStr = e.data.tokenMint.toString();
+      return [
+        e.signature,
+        Math.floor(e.time / 1000),
+        e.data.action.Deposit ? 'deposit' : 'withdraw',
+        tokenStr,
+        e.data.pool.toString(),
+        e.data.user.toString(),
+        e.data.amount.toString(),
+        e.data.lpSupply.toString(),
+        e.data.postLiquidity.toString(),
+        prices[tokenStr]?.usdPerUnit || null,
+      ];
+    });
+
+  // Batch insert for settled_games
+  const gameValues = await Promise.all(
+    events
+      .filter(
+        (e): e is GambaTransaction<'GameSettled'> => e.name === 'GameSettled'
+      )
+      .map(async e => {
+        const tokenStr = e.data.tokenMint.toString();
+        return [
+          e.signature,
+          Math.floor(e.time / 1000),
+          e.data.metadata,
+          e.data.nonce.toString(),
+          e.data.clientSeed,
+          e.data.rngSeed,
+          e.data.nextRngSeedHashed,
+          JSON.stringify(e.data.bet),
+          e.data.bet.length,
+          await getResultNumber(
+            e.data.rngSeed,
+            e.data.clientSeed,
+            e.data.nonce
+          ),
+          e.data.creator.toString(),
+          e.data.user.toString(),
+          tokenStr,
+          e.data.pool.toString(),
+          e.data.wager.toString(),
+          e.data.payout.toString(),
+          e.data.multiplierBps.toString(),
+          e.data.creatorFee.toString(),
+          e.data.poolFee.toString(),
+          e.data.gambaFee.toString(),
+          e.data.jackpotFee.toString(),
+          e.data.jackpotPayoutToUser.toString(),
+          e.data.poolLiquidity.toString(),
+          prices[tokenStr]?.usdPerUnit || null,
+        ];
+      })
+  );
+
+  // Insert pool changes
+  if (poolChangeValues.length > 0) {
+    const placeholders = poolChangeValues
+      .map((_, i) => {
+        const offset = i * 10;
+        return `($${1 + offset},$${2 + offset},$${3 + offset},$${4 + offset},$${
+          5 + offset
+        },$${6 + offset},$${7 + offset},$${8 + offset},$${9 + offset},$${
+          10 + offset
+        })`;
+      })
+      .join(',');
+
+    const flatValues = poolChangeValues.flat();
+
+    await client.query(
+      `INSERT INTO pool_changes (signature, block_time, action, token, pool, "user", amount, lp_supply, post_liquidity, usd_per_unit)
+       VALUES ${placeholders}
+       ON CONFLICT (signature) DO NOTHING`,
+      flatValues
+    );
   }
+
+  // Insert game events
+  if (gameValues.length > 0) {
+    const placeholders = gameValues
+      .map((_, i) => {
+        const offset = i * 23;
+        return Array.from({ length: 23 }, (_, j) => `$${1 + offset + j}`).join(
+          ','
+        );
+      })
+      .join('),(');
+
+    const flatValues = gameValues.flat();
+
+    await client.query(
+      `INSERT INTO settled_games (
+         signature, block_time, metadata, nonce, client_seed, rng_seed,
+         next_rng_seed_hashed, bet, bet_length, result_number,
+         creator, "user", token, pool, wager, payout,
+         multiplier_bps, creator_fee, pool_fee, gamba_fee,
+         jackpot_fee, jackpot, pool_liquidity, usd_per_unit
+       ) VALUES (${placeholders})
+       ON CONFLICT (signature) DO NOTHING`,
+      flatValues
+    );
+  }
+
+  console.log(
+    `Stored ${gameValues.length} games and ${poolChangeValues.length} pool changes`
+  );
 };
 
+/**
+ * Fetch and parse transactions in batches
+ */
 const fetchAndStoreEventsFromSignatures = async (signatures: string[]) => {
   const signatureBatches = createBatches(signatures, 100);
 
   for (const batch of signatureBatches) {
     const attempt = async (
-      attempts = 0
+      retries = 0
     ): Promise<
       (GambaTransaction<'GameSettled'> | GambaTransaction<'PoolChange'>)[]
     > => {
       try {
-        const transactions = (
-          await connection.getParsedTransactions(batch, {
-            maxSupportedTransactionVersion: 0,
-            commitment: 'confirmed',
-          })
-        ).flatMap(x => (x ? [x] : []));
+        const transactions = await connection.getParsedTransactions(batch, {
+          maxSupportedTransactionVersion: 0,
+          commitment: 'confirmed',
+        });
 
-        // return transactions.flatMap(parseGambaTransaction);
-        // return transactions
-        //   .flatMap(parseGambaTransaction)
-        //   .filter(
-        //     (
-        //       event
-        //     ): event is
-        //       | GambaTransaction<'GameSettled'>
-        //       | GambaTransaction<'PoolChange'> =>
-        //       event.name === 'GameSettled' || event.name === 'PoolChange'
-        //   );
-        const out: (
+        const events: (
           | GambaTransaction<'GameSettled'>
           | GambaTransaction<'PoolChange'>
         )[] = [];
+
         for (const tx of transactions) {
-          if (!tx) continue;
-          const ts = (tx.blockTime ?? Math.floor(Date.now() / 1000)) * 1000;
-          const evts = parseTransactionEvents(tx.meta?.logMessages ?? []);
-          for (const ev of evts) {
-            if (ev.name === 'GameSettled' || ev.name === 'PoolChange') {
-              out.push({
-                signature: tx.transaction.signatures[0],
-                time: ts,
-                name: ev.name as 'GameSettled' | 'PoolChange',
+          if (!tx || !tx.meta?.logMessages) continue;
+
+          const blockTime = tx.blockTime ?? Math.floor(Date.now() / 1000);
+          const parsedEvents = parseTransactionEvents(tx.meta.logMessages);
+
+          for (const ev of parsedEvents) {
+            const signature = tx.transaction.signatures[0];
+            const time = blockTime * 1000;
+
+            if (ev.name === 'GameSettled') {
+              events.push({
+                signature,
+                time,
+                name: 'GameSettled',
+                data: ev.data as any,
+              });
+            } else if (ev.name === 'PoolChange') {
+              events.push({
+                signature,
+                time,
+                name: 'PoolChange',
                 data: ev.data as any,
               });
             }
           }
         }
-        return out;
-      } catch {
-        console.log('Retrying... %d', attempts);
-        await new Promise(resolve => setTimeout(resolve, 1000 * attempts));
-        return attempt(attempts + 1);
+
+        return events;
+      } catch (err) {
+        if (retries < 5) {
+          console.log(`Retry ${retries + 1}/5 after error:`, err);
+          // Exponential backoff with longer delays for rate limits
+          const delay = err.message?.includes('429')
+            ? 5000 * (retries + 1)
+            : 1000 * (retries + 1);
+          await new Promise(resolve => setTimeout(resolve, delay));
+          return attempt(retries + 1);
+        }
+        console.error('Failed to fetch batch after 5 retries', err);
+        return [];
       }
     };
 
     const events = await attempt();
-
-    events.length && console.log('Storing %d events', events.length);
-
-    storeEvents(events);
+    if (events.length > 0) {
+      console.log('Fetched %d events, storing...', events.length);
+      await storeEvents(events); // ✅ Await this!
+    }
   }
 };
 
 /**
- * Recursively search for signatures,
- * Then populate the new signatures and store in Sqlite db.
+ * Main sync loop
  */
 const search = async () => {
+  // Step 1: Sync any remaining unprocessed signatures
   const remainingSignatures = await getRemainingSignatures();
-  console.log('Remaining signatures %d', remainingSignatures.length);
-  // Sort ascending, so we start fetching events from the first to last
-  remainingSignatures.sort((a, b) => a.block_time - b.block_time);
-  //
-  await fetchAndStoreEventsFromSignatures(
-    remainingSignatures.map(x => x.signature)
+  console.log(
+    'Remaining signatures to process: %d',
+    remainingSignatures.length
   );
 
-  await new Promise(resolve => setTimeout(resolve, 30000));
-
-  const lastStoredSignature = (await get(
-    'SELECT * from signatures order by block_time desc'
-  )) as SignatureObject | null;
-
-  const newSignatures = await getSignatures(undefined, lastStoredSignature);
-
-  newSignatures.length &&
-    console.log('Found %d signatures', newSignatures.length);
-
-  const insertSignatures = db.prepare(
-    'INSERT OR IGNORE INTO signatures (signature, block_time) VALUES (?, ?)'
-  );
-
-  for (const sig of newSignatures) {
-    insertSignatures.run(sig.signature, sig.block_time);
+  if (remainingSignatures.length > 0) {
+    const sigs = remainingSignatures.map(x => x.signature);
+    await fetchAndStoreEventsFromSignatures(sigs);
   }
 
-  newSignatures.length &&
-    console.log('Stored %d signatures', newSignatures.length);
+  // Step 2: Fetch latest stored signature
+  const lastStoredSignature = await get(
+    'SELECT * FROM signatures ORDER BY block_time DESC LIMIT 1'
+  );
 
+  // Step 3: Fetch new on-chain signatures since last one
+  const newSignatures = await getSignatures(
+    undefined,
+    lastStoredSignature as any
+  );
+  console.log('Found %d new signatures', newSignatures.length);
+
+  if (newSignatures.length > 0) {
+    // Insert new signatures
+    const insertQuery = `
+      INSERT INTO signatures (signature, block_time)
+      VALUES ($1, $2)
+      ON CONFLICT (signature) DO NOTHING
+    `;
+
+    for (const sig of newSignatures) {
+      await db.query(insertQuery, [sig.signature, sig.block_time]);
+    }
+
+    console.log('Stored %d new signatures', newSignatures.length);
+
+    // Process the newly stored signatures
+    await fetchAndStoreEventsFromSignatures(
+      newSignatures.map(s => s.signature)
+    );
+  }
+
+  // Step 4: Wait and repeat
+  await new Promise(resolve => setTimeout(resolve, 60000)); // Increased delay to 1 minute
   await search();
 };
 
 export async function sync() {
   try {
     await setupDb();
-    await new Promise(resolve => setTimeout(resolve, 10));
+    console.log('✅ Database ready');
     await search();
   } catch (err) {
     console.error('❌ Sync error', err);
-    console.log('Retrying sync..');
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    sync();
+    setTimeout(() => sync(), 5000);
   }
 }

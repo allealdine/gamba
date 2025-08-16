@@ -1,7 +1,7 @@
 {
   "private": true,
   "engines": {
-    "node": ">=22 <23"
+    "node": ">=22"
   },
   "scripts": {
     "build": "turbo run build",
@@ -24,7 +24,8 @@
       "react-dom": "18.3.1",
       "@solana/web3.js": "1.98.2",
       "@solana/spl-token": "0.4.13",
-      "@solana/wallet-adapter-react": "^0.15.39"
+      "@solana/wallet-adapter-react": "^0.15.39",
+      "tone": "15.1.22"
     },
     "ignoredBuiltDependencies": [
       "bigint-buffer",

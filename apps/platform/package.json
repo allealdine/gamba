@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "preview": "vite preview",
     "clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist"
   },
   "dependencies": {
@@ -20,10 +21,10 @@
     "@solana/wallet-adapter-wallets": "^0.19.18",
     "@vercel/kv": "^3.0.0",
     "buffer": "^6.0.3",
-    "@gamba-labs/multiplayer-sdk": "workspace:*",
-    "gamba-core-v2": "workspace:*",
-    "gamba-react-ui-v2": "workspace:*",
-    "gamba-react-v2": "workspace:*",
+    "@gamba-labs/multiplayer-sdk": "workspace:^2.0.0",
+    "gamba-core-v2": "workspace:^2.0.0",
+    "gamba-react-ui-v2": "workspace:^2.0.0",
+    "gamba-react-v2": "workspace:^2.0.0",
     "html2canvas": "^1.4.1",
     "matter-js": "^0.20.0",
     "framer-motion": "^12.16.0",

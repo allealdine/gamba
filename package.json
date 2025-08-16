@@ -5,6 +5,9 @@
   },
   "scripts": {
     "build": "turbo run build",
+    "build:packages": "turbo run build --filter=./packages/*",
+    "build:packages:clean": "node scripts/build-packages.js",
+    "verify:packages": "node scripts/verify-packages.js",
     "dev": "turbo run dev --filter=!gamba-api --no-cache --continue",
     "api": "turbo run api --filter=gamba-api",
     "api-dev": "turbo run dev --filter=gamba-api",
